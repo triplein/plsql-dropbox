@@ -8,7 +8,7 @@ The *docDropbox* package will return simple JSON data, as returned from the Drop
 ## Requirements
 
 - Oracle Database 11g (10g *might* be supported)
-- Installed [PL/JSON](http://sourceforge.net/projects/pljson/)
+- Installed [PL/JSON](https://github.com/pljson/pljson)
 - [Database ACL configured](http://docs.oracle.com/cd/B28359_01/appdev.111/b28419/d_networkacl_adm.htm#CHDJFJFF) to allow every call to `https://*.dropbox.com`
 - [Oracle Wallet](http://docs.oracle.com/cd/B10501_01/network.920/a96573/asowalet.htm) configured
 
