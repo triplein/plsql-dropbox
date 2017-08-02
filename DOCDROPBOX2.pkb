@@ -2,7 +2,7 @@
 --  DDL for Package Body DOCDROPBOX
 --------------------------------------------------------
 
-  CREATE OR REPLACE PACKAGE BODY "DOCDROPBOX" as
+  CREATE OR REPLACE PACKAGE BODY "DOCDROPBOX2" as
 
   procedure pAppendUrlParameter(u_vcUrl         in out varchar2
                                ,i_vcParamName   in     varchar2

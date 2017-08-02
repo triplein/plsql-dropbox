@@ -2,7 +2,7 @@
 --  DDL for Package DOCDROPBOX
 --------------------------------------------------------
 
-  CREATE OR REPLACE PACKAGE "DOCDROPBOX" AS 
+  CREATE OR REPLACE PACKAGE "DOCDROPBOX2" AS 
 /**
   *    Package used for communication with Dropbox Core APIs
   *
