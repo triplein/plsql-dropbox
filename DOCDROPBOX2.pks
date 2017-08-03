@@ -1,5 +1,5 @@
 --------------------------------------------------------
---  DDL for Package DOCDROPBOX
+--  DDL for Package DOCDROPBOX2
 --------------------------------------------------------
 
   CREATE OR REPLACE PACKAGE "DOCDROPBOX2" AS 
@@ -244,6 +244,6 @@
                           ,i_lbData       in    blob
                           ) return json;
     
-END docDropbox;
+END docDropbox2;
 
 /

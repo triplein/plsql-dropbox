@@ -1,5 +1,5 @@
 --------------------------------------------------------
---  DDL for Package Body DOCDROPBOX
+--  DDL for Package Body DOCDROPBOX2
 --------------------------------------------------------
 
   CREATE OR REPLACE PACKAGE BODY "DOCDROPBOX2" as
@@ -267,6 +267,7 @@ end pHttpCall;
     *   https://www.dropbox.com/developers/core/docs#oa2-authorize
     *
     * @history
+    *       2017-08-02  ms  Update for APIv2
     *       2014-08-18  ms  Initial
     *
     */
@@ -276,8 +277,8 @@ end pHttpCall;
     /* l_vcAuthURL := 'https://www.dropbox.com/1/oauth2/authorize' ||
                         '?response_type='   || i_vcResponseType ||
                         '&client_id='       || c_vcAppKey ||
-                        '&force_reapprove=' || docDropbox.fBoolToVarchar(i_boForceReapprove) ||
-                        '&disable_signup='  || docDropbox.fBoolToVarchar(i_boDisableSignup);
+                        '&force_reapprove=' || docDropbox2.fBoolToVarchar(i_boForceReapprove) ||
+                        '&disable_signup='  || docDropbox2.fBoolToVarchar(i_boDisableSignup);
                       
     if i_vcRedirectUri is not null then
         l_vcAuthURL := l_vcAuthURL || '&redirect_uri=' || i_vcRedirectUri;
@@ -286,11 +287,11 @@ end pHttpCall;
         l_vcAuthURL := l_vcAuthURL || '&state=' || i_vcState;
     end if; */
     
-    l_vcAuthURL := 'https://www.dropbox.com/1/oauth2/authorize?';
+    l_vcAuthURL := 'https://www.dropbox.com/oauth2/authorize?';
     pAppendUrlParameter(l_vcAuthURL, 'response_type', i_vcResponseType);
     pAppendUrlParameter(l_vcAuthURL, 'client_id', c_vcAppKey);
-    pAppendUrlParameter(l_vcAuthURL, 'force_reapprove', docDropbox.fBoolToVarchar(i_boForceReapprove));
-    pAppendUrlParameter(l_vcAuthURL, 'disable_signup', docDropbox.fBoolToVarchar(i_boDisableSignup));
+    pAppendUrlParameter(l_vcAuthURL, 'force_reapprove', docDropbox2.fBoolToVarchar(i_boForceReapprove));
+    pAppendUrlParameter(l_vcAuthURL, 'disable_signup', docDropbox2.fBoolToVarchar(i_boDisableSignup));
     pAppendUrlParameter(l_vcAuthURL, 'redirect_uri', i_vcRedirectUri);
     pAppendUrlParameter(l_vcAuthURL, 'state', i_vcState);
     return l_vcAuthURL;                 
@@ -314,6 +315,7 @@ end pHttpCall;
     *   https://www.dropbox.com/developers/core/docs#oa2-token
     *
     * @history
+    *       2017-08-02  ms  Update for APIv2
     *       2014-08-18  ms  Initial
     *
     */
@@ -329,7 +331,7 @@ end pHttpCall;
     pAppendUrlParameter(l_lcRequest, 'grant_type', i_vcGrantType);
                    
     dbms_lob.createTemporary(l_lcResult, TRUE);               
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/oauth2/token'
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropboxapi.com/oauth2/token'
               ,i_vcProxyUsr     => null
               ,i_vcProxyPwd     => null
               ,i_vcServerUsr    => c_vcAppKey
@@ -366,6 +368,7 @@ end pHttpCall;
     *   https://www.dropbox.com/developers/core/docs#account-info
     *
     * @history
+    *       2017-08-02  ms  Update for APIv2
     *       2014-08-18  ms  Initial
     *
     */
@@ -379,7 +382,7 @@ end pHttpCall;
     pAppendUrlParameter(l_lcRequest, 'locale', i_vcLocale);
                    
     dbms_lob.createTemporary(l_lcResult, true);               
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/account/info'
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropboxapi.com/2/users/get_current_account'
               ,i_lcReq          => l_lcRequest
               ,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -395,9 +398,9 @@ end pHttpCall;
     return l_jsResult;
   end;
 
-  function fUploadData(i_vcToken in varchar2
+  function fUploadData(i_vcToken      in varchar2
                       ,i_vcTargetPath in varchar2
-                      ,i_boOverwrite in boolean
+                      ,i_vcMode       in varchar2
                       ,i_lbData in blob) return json as
     /** @headcom
     *    Uploads data to the specified path. Limited to 150 MB per upload.
@@ -415,6 +418,7 @@ end pHttpCall;
     *   https://www.dropbox.com/developers/core/docs#files_put
     *
     * @history
+    *       2017-08-02  ms  Update for APIv2
     *       2014-08-18  ms  Initial
     *
     */                     
@@ -437,8 +441,8 @@ end pHttpCall;
   
     utl_http.set_wallet (c_vcWalletPath, c_vcWalletPwd);
     
-    pAppendUrlParameter(l_vcParamList, 'overwrite', docDropbox.fBoolToVarchar(i_boOverwrite));
-    l_trReq := utl_http.begin_request('https://api-content.dropbox.com/1/files_put/auto/' ||
+    pAppendUrlParameter(l_vcParamList, 'mode', i_vcMode);
+    l_trReq := utl_http.begin_request('https://content.dropboxapi.com/2/files/upload' ||
                                            i_vcTargetPath || '?' || l_vcParamList, 'PUT');
     l_nuLength := dbms_lob.getLength(i_lbData);
     utl_http.set_header(l_trReq, 'Authorization', 'Bearer ' || i_vcToken);
@@ -590,11 +594,11 @@ end pHttpCall;
   begin
     
     pAppendUrlParameter(l_lcRequest, 'upload_id', i_vcUploadId);
-    pAppendUrlParameter(l_lcRequest, 'overwrite', docDropbox.fBoolToVarchar(i_boOverwrite));
+    pAppendUrlParameter(l_lcRequest, 'overwrite', docDropbox2.fBoolToVarchar(i_boOverwrite));
     pAppendUrlParameter(l_lcRequest, 'parent_rev', i_vcParentRev);
                    
     dbms_lob.createTemporary(l_lcResult, true);               
-    docDropbox.pHttpCall (i_vcUrl => 'https://api-content.dropbox.com/1/commit_chunked_upload/auto/' || i_vcPath
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api-content.dropbox.com/1/commit_chunked_upload/auto/' || i_vcPath
               ,i_lcReq          => l_lcRequest
               ,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -661,11 +665,12 @@ end pHttpCall;
   END;
   
   
-  function fGetMetadata (i_vcToken  in     varchar2
-                        ,i_vcPath   in     varchar2
-                        ,i_vcHash   in     varchar2
-                        ,i_boList   in     boolean default false
-                        ,i_vcLocale in     varchar2 default c_vcLocale
+  function fGetMetadata (i_vcToken                     in varchar2
+                        ,i_vcPath                      in varchar2
+                        ,i_boIncludeMediaInfo          in boolean default false
+                        ,i_boIncludeDeleted            in boolean default false
+                        ,i_boIncludeHasExplicitMembers in boolean default false
+                        ,i_vcLocale                    in varchar2 default c_vcLocale
                         ) return json as
                         
     /** @headcom
@@ -675,16 +680,18 @@ end pHttpCall;
     *
     * @version    n/a
     *
-    * @param      i_vcToken     API Token
-    * @param      i_vcPath      The path to the file or folder
-    * @param      i_vcHash      See  documentation
-    * @param      i_boList      Whether the content of a folder should be listed in the output
-    * @param      i_vcLocale    Use to specify language settings
+    * @param      i_vcToken                     API Token
+    * @param      i_vcPath                      The path to the file or folder
+    * @param      i_vcLocale                    Use to specify language settings
+    * @param      i_boIncludeMediaInfo          If true, FileMetadata.media_info is set for photo and video.
+    * @param      i_boIncludeDeleted            If true, DeletedMetadata will be returned for deleted file or folder, otherwise LookupError.not_found will be returned.
+    * @param      i_boIncludeHasExplicidMembers If true, the results will include a flag for each file indicating whether or not that file has any explicit members.
     * 
     * @see
     *   https://www.dropbox.com/developers/core/docs#metadata
     *
     * @history
+    *       2017-08-02  ms  Update for v2
     *       2014-08-18  ms  Initial
     *
     */     
@@ -700,12 +707,15 @@ end pHttpCall;
   begin
     
     pAppendUrlParameter(l_lcRequest, 'file_limit', l_nuFileLimit);
-    pAppendUrlParameter(l_lcRequest, 'list', docDropbox.fBoolToVarchar(i_boList));
+    pAppendUrlParameter(l_lcRequest, 'path', i_vcPath);
+    pAppendUrlParameter(l_lcRequest, 'include_media_info', docDropbox2.fBoolToVarchar(i_boIncludeMediaInfo));
+    pAppendUrlParameter(l_lcRequest, 'include_deleted', docDropbox2.fBoolToVarchar(i_boIncludeDeleted));
+    pAppendUrlParameter(l_lcRequest, 'include_has_explicit_shared_members', docDropbox2.fBoolToVarchar(i_boIncludeHasExplicitMembers));
     pAppendUrlParameter(l_lcRequest, 'locale', i_vcLocale);
     pAppendUrlParameter(l_lcRequest, 'hash', i_vcHash);
                 
     dbms_lob.createTemporary(l_lcResult, TRUE);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/metadata/auto/' || i_vcPath
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropboxapi.com/2/files/get_metadata'
               ,i_lcReq          => l_lcRequest
               ,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -771,7 +781,7 @@ end pHttpCall;
     pAppendUrlParameter(l_lcRequest, 'locale', i_vcLocale);
     
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/delta'
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/delta'
               ,i_lcReq          => l_lcRequest
               ,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -821,7 +831,7 @@ end pHttpCall;
     pAppendUrlParameter(l_lcRequest, 'timeout', i_nuTimeout);
 
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api-notify.dropbox.com/1/longpoll_delta?' || l_lcRequest
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api-notify.dropbox.com/1/longpoll_delta?' || l_lcRequest
               ,i_lcReq          => l_lcRequest
               ,o_inHttpCode     => l_inHttpCode
               ,o_vcHttpCodeMes  => l_vcHttpCodeMes
@@ -867,7 +877,7 @@ end pHttpCall;
     l_jlResult json_list;
   begin
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/revisions/auto/' || i_vcPath
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/revisions/auto/' || i_vcPath
               ,i_lcReq          => l_lcRequest
               ,o_inHttpCode     => l_inHttpCode
               ,o_vcHttpCodeMes  => l_vcHttpCodeMes
@@ -920,7 +930,7 @@ end pHttpCall;
     pAppendUrlParameter(l_lcRequest, 'locale', i_vcLocale);
     
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/restore/auto/' || i_vcPath
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/restore/auto/' || i_vcPath
               ,i_lcReq          => l_lcRequest
               ,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -976,11 +986,11 @@ end pHttpCall;
   begin 
     pAppendUrlParameter(l_lcRequest, 'query', i_vcQuery);
     pAppendUrlParameter(l_lcRequest, 'file_limit', i_nuFileLimit);
-    pAppendUrlParameter(l_lcRequest, 'include_deleted', docDropbox.fBoolToVarchar(i_boIncludeDeleted));
+    pAppendUrlParameter(l_lcRequest, 'include_deleted', docDropbox2.fBoolToVarchar(i_boIncludeDeleted));
     pAppendUrlParameter(l_lcRequest, 'locale', i_vcLocale);
     
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/search/auto/' || i_vcPath
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/search/auto/' || i_vcPath
               ,i_lcReq          => l_lcRequest
               ,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -1032,11 +1042,11 @@ end pHttpCall;
     
   begin
     
-    pAppendUrlParameter(l_lcRequest, 'short_url', docDropbox.fBoolToVarchar(i_boURLShort));
+    pAppendUrlParameter(l_lcRequest, 'short_url', docDropbox2.fBoolToVarchar(i_boURLShort));
     pAppendUrlParameter(l_lcRequest, 'locale', i_vcLocale);
     
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/shares/auto/' || i_vcPath
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/shares/auto/' || i_vcPath
               ,i_lcReq          => l_lcRequest
               ,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -1084,7 +1094,7 @@ end pHttpCall;
   begin  
     pAppendUrlParameter(l_lcRequest, 'locale', i_vcLocale);
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/media/auto/' || i_vcPath
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/media/auto/' || i_vcPath
               ,i_lcReq          => l_lcRequest
               ,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -1130,7 +1140,7 @@ end pHttpCall;
     l_jsResult json;
   begin
     dbms_lob.createTemporary(l_lcRequest, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/copy_ref/auto/' || i_vcPath
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/copy_ref/auto/' || i_vcPath
               ,i_lcReq          => l_lcRequest
               --,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -1181,7 +1191,7 @@ end pHttpCall;
     pAppendUrlParameter(l_lcRequest, 'size', i_vcSize);
     
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api-content.dropbox.com/1/thumbnails/auto/' || i_vcPath
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api-content.dropbox.com/1/thumbnails/auto/' || i_vcPath
               ,i_lcReq          => l_lcRequest
               ,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -1232,7 +1242,7 @@ end pHttpCall;
     pAppendUrlParameter(l_lcRequest, 'rev', i_vcRev);
     
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api-content.dropbox.com/1/previews/auto/' || i_vcPath
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api-content.dropbox.com/1/previews/auto/' || i_vcPath
               ,i_lcReq          => l_lcRequest
               ,i_vcContentType  => 'application/x-www-form-urlencoded'
               ,o_inHttpCode     => l_inHttpCode
@@ -1290,7 +1300,7 @@ end pHttpCall;
     pAppendUrlParameter(l_lcRequest, 'locale', i_vcLocale);
     
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/fileops/create_folder'
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/fileops/create_folder'
               ,i_lcReq          => l_lcRequest
               ,o_inHttpCode     => l_inHttpCode
               ,o_vcHttpCodeMes  => l_vcHttpCodeMes
@@ -1344,7 +1354,7 @@ end pHttpCall;
       
   
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/fileops/delete'
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/fileops/delete'
               ,i_lcReq          => l_lcRequest
               ,o_inHttpCode     => l_inHttpCode
               ,o_vcHttpCodeMes  => l_vcHttpCodeMes
@@ -1403,7 +1413,7 @@ end pHttpCall;
       
   
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/fileops/move'
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/fileops/move'
               ,i_lcReq          => l_lcRequest
               ,o_inHttpCode     => l_inHttpCode
               ,o_vcHttpCodeMes  => l_vcHttpCodeMes
@@ -1465,7 +1475,7 @@ end pHttpCall;
     pAppendUrlParameter(l_lcRequest, 'from_copy_ref', i_vcCopyRef);
     
     dbms_lob.createTemporary(l_lcResult, true);
-    docDropbox.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/fileops/copy'
+    docDropbox2.pHttpCall (i_vcUrl => 'https://api.dropbox.com/1/fileops/copy'
               ,i_lcReq          => l_lcRequest
               ,o_inHttpCode     => l_inHttpCode
               ,o_vcHttpCodeMes  => l_vcHttpCodeMes
@@ -1503,7 +1513,7 @@ end pHttpCall;
     l_nuCount         number := 0;
   begin
     if dbms_lob.getLength(i_lbData) < l_nuChunkSize then
-      return docDropbox.fUploadData(i_vcToken
+      return docDropbox2.fUploadData(i_vcToken
                         ,i_vcTargetPath
                         ,i_boOverwrite
                         ,i_lbData);
@@ -1511,14 +1521,14 @@ end pHttpCall;
     dbms_lob.createTemporary(l_lbChunk, true);
     dbms_lob.copy(l_lbChunk, i_lbData, l_nuChunkSize, 1, l_nuOffsetCopy);
     
-    l_jsReturn := docDropbox.fChunkedUpload(i_vcToken, null, l_nuOffsetDropbox, l_lbChunk);
+    l_jsReturn := docDropbox2.fChunkedUpload(i_vcToken, null, l_nuOffsetDropbox, l_lbChunk);
     l_vcUploadId := replace(l_jsReturn.get('upload_id').to_char(), '"', '');
     l_nuOffsetCopy := l_nuOffsetCopy + l_nuChunkSize;
     l_nuOffsetDropbox := l_nuOffsetDropbox + l_nuChunkSize;
     while (l_nuOffsetCopy + l_nuChunkSize) <= dbms_lob.getLength(i_lbData)
       loop
         dbms_lob.copy(l_lbChunk, i_lbData, l_nuChunkSize, 1, l_nuOffsetCopy);
-        l_jsReturn := docDropbox.fChunkedUpload(i_vcToken, l_vcUploadId, l_nuOffsetDropbox, l_lbChunk);
+        l_jsReturn := docDropbox2.fChunkedUpload(i_vcToken, l_vcUploadId, l_nuOffsetDropbox, l_lbChunk);
         l_nuOffsetDropbox := l_nuOffsetDropbox + l_nuChunkSize;
         l_nuOffsetCopy := l_nuOffsetCopy + l_nuChunkSize;
       end loop;
@@ -1527,12 +1537,12 @@ end pHttpCall;
       dbms_lob.freeTemporary(l_lbChunk);
       dbms_lob.createTemporary(l_lbChunk, true);
       dbms_lob.copy(l_lbChunk, i_lbData, dbms_lob.getLength(i_lbData) - l_nuOffsetCopy + 1, 1, l_nuOffsetCopy);
-      l_jsReturn := docDropbox.fChunkedUpload(i_vcToken, l_vcUploadId, l_nuOffsetDropbox, l_lbChunk);
+      l_jsReturn := docDropbox2.fChunkedUpload(i_vcToken, l_vcUploadId, l_nuOffsetDropbox, l_lbChunk);
     end if;
     
-    l_jsReturn := docDropbox.fCommitChunkedUpload(i_vcToken, i_vcTargetPath, l_vcUploadId, i_boOverwrite, null, 'de');
+    l_jsReturn := docDropbox2.fCommitChunkedUpload(i_vcToken, i_vcTargetPath, l_vcUploadId, i_boOverwrite, null, 'de');
     return l_jsReturn;
   end;
-end docDropbox;
+end docDropbox2;
 
 /
